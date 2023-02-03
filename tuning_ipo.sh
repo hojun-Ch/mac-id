@@ -1,0 +1,9 @@
+python train_ipo.py --learning_rate=0.0001 --max_step=100000 --name=ipo_1e-4
+python train_ipo.py --learning_rate=0.0003 --max_step=100000 --name=ipo_3e-4
+python train_ipo.py --learning_rate=0.0005 --max_step=100000 --name=ipo_5e-4
+python train_ipo.py --learning_rate=0.0007 --max_step=100000 --name=ipo_7e-4
+python train_ipo.py --learning_rate=0.001 --max_step=100000 --name=ipo_1e-3
+python train_ipo.py --learning_rate=0.003 --max_step=100000 --name=ipo_3e-3
+python train_ipo.py --learning_rate=0.00001 --max_step=100000 --name=ipo_1e-5
+python train_ipo.py --learning_rate=0.00003 --max_step=100000 --name=ipo_3e-5
+python train_ipo.py --learning_rate=0.00005 --max_step=100000 --name=ipo_5e-5
