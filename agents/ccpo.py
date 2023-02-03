@@ -94,6 +94,8 @@ class CCPO():
         """
         with torch.no_grad():
             obs = obs.to(self.device)
+            lcf = torch.from_numpy(lcf.reshape((-1,1)).astype(np.float32))
+            lcf = lcf.to(self.device)
             
             action, log_prob = self.policy_network(obs, lcf)
             
@@ -112,7 +114,8 @@ class CCPO():
     def get_values(self, obs, lcf):
         """
         """
-        lcf = torch.from_numpy(lcf.reshape((-1,1)).astype(np.float32)).to(self.device)
+        lcf = torch.from_numpy(lcf.reshape((-1,1)).astype(np.float32))
+        lcf = lcf.to(self.device)
 
         with torch.no_grad():
             obs = obs.to(self.device)
@@ -143,7 +146,7 @@ class CCPO():
                 actions = rollout_data.actions
                 lcf = rollout_data.lcf
 
-                values, n_values, g_values, log_prob, entropy = self.evaluate_actions(rollout_data.observations, rollout_data.surroundings, actions, lcf)
+                values, n_values, g_values, log_prob, entropy = self.evaluate_actions(rollout_data.observations, actions, lcf)
                 values = values.flatten()
                 n_values = n_values.flatten()
                 g_values = g_values.flatten()
