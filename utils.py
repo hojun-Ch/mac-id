@@ -79,22 +79,16 @@ def obs_to_reward(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_distance,
         reward[i] = dist_to_reward(distance_to_goal, prev_distance, max_distance, neighbor_distance, sparse) - coll * coll_penalty
         no_coll_reward[i] = dist_to_reward(distance_to_goal, prev_distance, max_distance, neighbor_distance)
         collision[i] = coll
-        
-    for i in range(num_ped):
-        # n_reward[i] += reward[i]
-        
-        for j in range(i+1, num_ped):
-            x1 = obs[i][0] * (l//2)
-            z1 = obs[i][1] * (w//2)
-            x2 = obs[j][0] * (l//2)
-            z2 = obs[j][1] * (w//2)
-            
-            if math.sqrt((x1 - x2)**2 + (z1 - z2) ** 2) < neighbor_distance:
-                n_reward[i] += reward[j]
-                n_reward[j] += reward[i]
-                neighbor_num[i] += 1
-                neighbor_num[j] += 1
     
+    location = obs[:,:2] * np.array([l//2, w//2])
+
+    for i in range(num_ped):
+        location_difference = location - location[i]
+        distance = np.sum(location_difference ** 2, axis=1)
+        neighbor_index = distance < (neighbor_distance ** 2)
+        neighbor_index[i] = 0
+        n_reward[i] = np.sum(reward[neighbor_index])
+        
     n_reward = n_reward / (neighbor_num +1e-8)
     g_reward *= reward.sum() / num_ped
     
