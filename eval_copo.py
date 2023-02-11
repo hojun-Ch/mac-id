@@ -14,7 +14,7 @@ import time
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 import os
 
-from utils import obs_to_global_reward, make_observation, check_success_rate
+from utils import state_engineering,obs_to_global_reward, make_observation, check_success_rate
 
 
 def eval_bottleneck(args, agent, env):
@@ -35,7 +35,9 @@ def eval_bottleneck(args, agent, env):
     
     for i in range(1000):
         prev_obs = obs
-        action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(prev_obs))
+        new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
+
+        action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(new_prev_obs))
         raw_obs, __, __, __ = env.step(action.reshape(-1))
         
         obs = make_observation(raw_obs[0],args.map_length, args.map_width, 51, args.obs_dim, args.dummy_index, args.neighbor_distance)
@@ -57,12 +59,14 @@ def eval_crossing(args, agent, env):
     
     raw_obs = env.reset()
     obs = make_observation(raw_obs[0],args.map_length, args.map_width, 51, args.obs_dim, args.dummy_index, args.neighbor_distance)
+    new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
+
     episode_return = 0
     episode_coll = 0
     
     for i in range(1000):
         prev_obs = obs
-        action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(prev_obs))
+        action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(new_prev_obs))
         raw_obs, __, __, __ = env.step(action.reshape(-1))
         
         obs = make_observation(raw_obs[0],args.map_length, args.map_width, 51, args.obs_dim, args.dummy_index, args.neighbor_distance)
@@ -84,12 +88,13 @@ def eval_dense(args, agent,env):
     
     raw_obs = env.reset()
     obs = make_observation(raw_obs[0],args.map_length, args.map_width, 200, args.obs_dim, args.dummy_index, args.neighbor_distance)
+    new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
     episode_return = 0
     episode_coll = 0
     
     for i in range(1000):
         prev_obs = obs
-        action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(prev_obs))
+        action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(new_prev_obs))
         raw_obs, __, __, __ = env.step(action.reshape(-1))
         
         obs = make_observation(raw_obs[0],args.map_length, args.map_width, 200, args.obs_dim, args.dummy_index, args.neighbor_distance)
@@ -116,7 +121,8 @@ def eval_random(args, agent, env):
     
     for i in range(1000):
         prev_obs = obs
-        action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(prev_obs))
+        new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
+        action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(new_prev_obs))
         raw_obs, __, __, __ = env.step(action.reshape(-1))
         
         obs = make_observation(raw_obs[0],args.map_length, args.map_width, 51, args.obs_dim, args.dummy_index, args.neighbor_distance)

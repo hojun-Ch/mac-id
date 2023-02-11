@@ -14,7 +14,7 @@ import os
 from arguments import parser
 from agents.ccpo import CCPO
 from eval_ccpo import eval_bottleneck, eval_crossing, eval_dense, eval_random
-from utils import obs_to_reward, obs_to_reward_coll_smoothed, make_observation, make_env, check_success_rate
+from utils import state_engineering,obs_to_reward, obs_to_reward_coll_smoothed, make_observation, make_env, check_success_rate
 
 import wandb
 
@@ -73,9 +73,10 @@ if __name__ == '__main__':
         
         for i in range(args.rollout_length):
             prev_obs = make_observation(raw_obs[0], args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
-            
+            new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
+
             with torch.no_grad():
-                action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(prev_obs), lcf)
+                action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(new_prev_obs), lcf)
             raw_obs, __, __, __ = env.step(action.reshape(-1))
             
             obs = make_observation(raw_obs[0], args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
@@ -87,15 +88,15 @@ if __name__ == '__main__':
             train_global_return += global_reward_wo_coll
             train_collision +=  global_coll
             if i == 0:
-                agent.rollout_buffer.add(prev_obs, action, reward, n_reward, g_reward, np.array([1] * args.num_ped), value, n_value, g_value, log_prob, lcf)
+                agent.rollout_buffer.add(new_prev_obs, action, reward, n_reward, g_reward, np.array([1] * args.num_ped), value, n_value, g_value, log_prob, lcf)
             else:
-                agent.rollout_buffer.add(prev_obs, action, reward, n_reward, g_reward, np.array([0] * args.num_ped), value, n_value, g_value, log_prob, lcf)
+                agent.rollout_buffer.add(new_prev_obs, action, reward, n_reward, g_reward, np.array([0] * args.num_ped), value, n_value, g_value, log_prob, lcf)
         print("episode end!")
         
         #  compute advantage and return
         success_rate = check_success_rate(obs, args.map_length, args.map_width)
         with torch.no_grad():
-            last_value, last_n_value, last_g_value = agent.get_values(torch.from_numpy(obs),lcf)
+            last_value, last_n_value, last_g_value = agent.get_values(torch.from_numpy(state_engineering(obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)),lcf)
         agent.rollout_buffer.compute_returns_and_advantage(last_value, last_n_value, last_g_value, 0)
 
         print("updating....")
