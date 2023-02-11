@@ -42,7 +42,6 @@ def make_observation(raw_obs, l, w, num_ped, obs_dim, index_offset, neighbor_dis
     
     obs = np.array(raw_obs[index_offset:], dtype = np.float32)
     obs = obs.reshape((num_ped, 43))
-    
     dmean = np.array([0,0,180,0,0,0,0] + [0,180,0] * 12, dtype=np.float32)
     normalize_factor = np.array([l//2, w//2, 180, l//2, w//2, 5, 1] + [1,180,5] * 12, dtype=np.float32)
     obs = (obs-dmean) / normalize_factor
@@ -50,7 +49,20 @@ def make_observation(raw_obs, l, w, num_ped, obs_dim, index_offset, neighbor_dis
     obs[:,6] = obs[:,6] > 0
     
     return obs
-
+def state_engineering(obs, l, w, num_ped, obs_dim):
+    # distance
+    new_obs = np.zeros((num_ped, obs_dim), dtype=np.float32)
+    new_obs[:,0] = np.sqrt((obs[:,0] - obs[:,3])**2 + (obs[:,1] - obs[:,4])**2)
+    
+    # heading
+    goal_direction = (np.arctan2(obs[:,0] - obs[:,3], obs[:,1] - obs[:,4]))
+    goal_direction[goal_direction < 0] += math.pi * 2
+    goal_heading = goal_direction - obs[:,2] * math.pi / 180
+    goal_heading[goal_heading < 0] += math.pi * 2
+    new_obs[:,1] = goal_heading / (2 * math.pi)
+    
+    new_obs[:,2:] = obs[:,7:]
+    return new_obs
 def obs_to_reward(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_distance, sparse):
     reward = np.zeros(num_ped)
     g_reward = np.ones(num_ped)

@@ -14,7 +14,7 @@ import os
 from arguments import parser
 from agents.ipo import IPO
 from eval_ipo import eval_bottleneck, eval_crossing, eval_dense, eval_random
-from utils import obs_to_reward, obs_to_reward_coll_smoothed, obs_to_single_reward, make_observation, make_env, check_success_rate
+from utils import state_engineering, obs_to_reward, obs_to_reward_coll_smoothed, obs_to_single_reward, make_observation, make_env, check_success_rate
 
 import wandb
 
@@ -73,6 +73,7 @@ if __name__ == '__main__':
         raw_obs = env.reset()
         obs = make_observation(raw_obs[0], args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
         
+        
         print("episode num: ", j)
         print("collecting rollout.....")
 
@@ -81,7 +82,8 @@ if __name__ == '__main__':
         train_collision = 0
         for i in range(args.rollout_length):
             prev_obs = obs
-            action, log_prob, value = agent.act(torch.from_numpy(prev_obs))
+            new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
+            action, log_prob, value = agent.act(torch.from_numpy(new_prev_obs))
             raw_obs, __, __, __ = env.step(action.reshape(-1))
 
             obs = make_observation(raw_obs[0], args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
@@ -95,15 +97,15 @@ if __name__ == '__main__':
             train_collision +=  global_coll
             
             if i == 0:
-                agent.rollout_buffer.add(prev_obs, action, reward, reward, g_reward, np.array([1] * args.num_ped), value, value, value, log_prob, np.array([0.0] * args.num_ped))
+                agent.rollout_buffer.add(new_prev_obs, action, reward, reward, g_reward, np.array([1] * args.num_ped), value, value, value, log_prob, np.array([0.0] * args.num_ped))
             else:
-                agent.rollout_buffer.add(prev_obs, action, reward, reward, g_reward, np.array([0] * args.num_ped), value, value, value, log_prob, np.array([0.0] * args.num_ped))
+                agent.rollout_buffer.add(new_prev_obs, action, reward, reward, g_reward, np.array([0] * args.num_ped), value, value, value, log_prob, np.array([0.0] * args.num_ped))
         
         print("episode end!")
         
         #  compute advantage and return
         success_rate = check_success_rate(obs, args.map_length, args.map_width)
-        last_value = agent.get_values(torch.from_numpy(obs))
+        last_value = agent.get_values(torch.from_numpy(state_engineering(obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)))
         agent.rollout_buffer.compute_returns_and_advantage(last_value, last_value, last_value, 0)
 
         print("updating....")

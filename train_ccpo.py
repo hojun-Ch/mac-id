@@ -22,7 +22,7 @@ if __name__ == '__main__':
     
     # get and save args
     args = parser.parse_args()
-    args.algo = "MAC_ID"
+    args.algo = "MAC_ID_conditioned"
     wandb.init(project="pedsim_lidar", reinit=True, entity="hojun-chung")
     wandb.run.name = args.name
     
