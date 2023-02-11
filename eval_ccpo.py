@@ -93,7 +93,7 @@ def eval_dense(args, agent, env):
 
     for i in range(1000):
         prev_obs = obs
-        new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
+        new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, 200, args.obs_dim)
         action, log_prob, value,  n_value, g_value  = agent.act(torch.from_numpy(new_prev_obs), lcf)
         raw_obs, __, __, __ = env.step(action.reshape(-1))
         
