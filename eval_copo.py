@@ -59,13 +59,13 @@ def eval_crossing(args, agent, env):
     
     raw_obs = env.reset()
     obs = make_observation(raw_obs[0],args.map_length, args.map_width, 51, args.obs_dim, args.dummy_index, args.neighbor_distance)
-    new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
 
     episode_return = 0
     episode_coll = 0
     
     for i in range(1000):
         prev_obs = obs
+        new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
         action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(new_prev_obs))
         raw_obs, __, __, __ = env.step(action.reshape(-1))
         
@@ -88,12 +88,13 @@ def eval_dense(args, agent,env):
     
     raw_obs = env.reset()
     obs = make_observation(raw_obs[0],args.map_length, args.map_width, 200, args.obs_dim, args.dummy_index, args.neighbor_distance)
-    new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
+    
     episode_return = 0
     episode_coll = 0
     
     for i in range(1000):
         prev_obs = obs
+        new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
         action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(new_prev_obs))
         raw_obs, __, __, __ = env.step(action.reshape(-1))
         
