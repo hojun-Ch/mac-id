@@ -31,7 +31,7 @@ def eval_bottleneck(args, agent, env):
     obs = make_observation(raw_obs[0],args.map_length, args.map_width, 51, args.obs_dim, args.dummy_index, args.neighbor_distance)
     episode_return = 0
     episode_coll = 0
-    lcf = np.random.uniform(-math.pi / 2, math.pi / 2, 51)
+    lcf = np.random.uniform(0, math.pi / 3, 51)
     for i in range(1000):
         prev_obs = obs
         new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
@@ -59,7 +59,7 @@ def eval_crossing(args, agent, env):
     obs = make_observation(raw_obs[0],args.map_length, args.map_width, 51, args.obs_dim, args.dummy_index, args.neighbor_distance)
     episode_return = 0
     episode_coll = 0
-    lcf = np.random.uniform(-math.pi / 2, math.pi / 2, 51)
+    lcf = np.random.uniform(0, math.pi / 3, 51)
 
     for i in range(1000):
         prev_obs = obs
@@ -89,7 +89,7 @@ def eval_dense(args, agent, env):
     episode_return = 0
     episode_coll = 0
     
-    lcf = np.random.uniform(-math.pi / 2, math.pi / 2, 200)
+    lcf = np.random.uniform(0, math.pi / 3, 200)
 
     for i in range(1000):
         prev_obs = obs
@@ -111,7 +111,7 @@ def eval_random(args, agent, env):
     episode_return = 0
     episode_coll = 0
     
-    lcf = np.random.uniform(-math.pi / 2, math.pi / 2, 51)
+    lcf = np.random.uniform(0, math.pi / 3, 51)
 
     for i in range(1000):
         prev_obs = obs
