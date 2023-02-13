@@ -33,6 +33,13 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    '--env_name',
+    type=str,
+    default='bottleneck',
+    help='environment name'
+)
+
+parser.add_argument(
     '--worker',
     type=int,
     default=0,
@@ -78,7 +85,7 @@ parser.add_argument(
 parser.add_argument(
     '--obs_dim',
     type=int,
-    default=43,
+    default=38,
     help='dim of observation'
 )
 parser.add_argument(
@@ -248,7 +255,7 @@ parser.add_argument(
 parser.add_argument(
     '--coll_penalty',
     type=float,
-    default=0.1,
+    default=1.0,
     help='collision penalty'
 )
 
@@ -280,3 +287,33 @@ parser.add_argument(
     help='path to saved model'
 )
 
+# SAC parameters
+parser.add_argument(
+    '--initial_temperature',
+    type=float,
+    default=0.1,
+    help='initial temperature'
+)
+parser.add_argument(
+    '--learnable_temperature',
+    type=str2bool,
+    default=True,
+    help='learn entropy coeff'
+)
+parser.add_argument(
+    '--critic_tau',
+    type=float,
+    default=0.005,
+    help='critic ema'
+)
+parser.add_argument(
+    '--learning_starts',
+    type=int,
+    default=5000,
+    help='start learning after this value env step'
+)
+parser.add_argument(
+    '--critic_target_update_freq',
+    type=int,
+    default=2,
+)
