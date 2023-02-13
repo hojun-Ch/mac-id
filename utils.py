@@ -93,18 +93,21 @@ def obs_to_reward(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_distance,
         collision[i] = coll
     
     location = obs[:,:2] * np.array([l//2, w//2])
-
+    g_reward *= reward.sum() / num_ped
+    
     for i in range(num_ped):
         location_difference = location - location[i]
         distance = np.sum(location_difference ** 2, axis=1)
         neighbor_index = distance < (neighbor_distance ** 2)
         neighbor_index[i] = 0
-        n_reward[i] = np.sum(reward[neighbor_index])
+        if np.shape(reward[neighbor_index])[0] == 0:
+            n_reward[i] = g_reward[0]
+        else:
+            n_reward[i] = np.mean(reward[neighbor_index])
         
-    n_reward = n_reward / (neighbor_num +1e-8)
-    g_reward *= reward.sum() / num_ped
-    
-    n_reward[neighbor_num == 0] = g_reward[0]
+    # n_reward = n_reward / (neighbor_num +1e-8)
+    # print(neighbor_num)
+    # n_reward[neighbor_num == 0] = g_reward[0]
     
     global_reward_wo_coll = no_coll_reward.sum() / num_ped
     g_coll = collision.sum() / num_ped

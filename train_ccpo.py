@@ -85,6 +85,7 @@ if __name__ == '__main__':
                 reward, n_reward, g_reward, global_reward_wo_coll, global_coll = obs_to_reward_coll_smoothed(obs, prev_obs, args.map_length, args.map_width, args.num_ped, args.coll_penalty, args.neighbor_distance, args.sparse_reward)
             else:
                 reward, n_reward, g_reward, global_reward_wo_coll, global_coll = obs_to_reward(obs, prev_obs, args.map_length, args.map_width, args.num_ped, args.coll_penalty, args.neighbor_distance, args.sparse_reward)
+            
             train_global_return += global_reward_wo_coll
             train_collision +=  global_coll
             if i == 0:
