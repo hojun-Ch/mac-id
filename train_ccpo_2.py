@@ -33,7 +33,7 @@ if __name__ == '__main__':
     if not os.path.isdir(args.model_path + args.name):
         os.mkdir(args.model_path + args.name)
         
-    agent = COPO(args)
+    agent = CCPO(args)
  
     # make train env
     env = make_env(args, "train_" + args.env_name, args.seed, 0)
@@ -62,7 +62,7 @@ if __name__ == '__main__':
             prev_obs = obs     
             new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
          
-             with torch.no_grad():
+            with torch.no_grad():
                 action, log_prob, value, n_value, g_value = agent.act(torch.from_numpy(new_prev_obs), lcf)
             raw_obs, __, __, __ = env.step(action.reshape(-1))
             

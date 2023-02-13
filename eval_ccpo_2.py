@@ -22,7 +22,8 @@ def evaluation(args, agent, env):
     obs = make_observation(raw_obs[0],args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
     episode_return = 0
     episode_coll = 0
-    lcf = np.random.uniform(0, math.pi / 3, args.num_ped)
+    # lcf = np.random.uniform(0, math.pi / 3, args.num_ped)
+    lcf = np.ones(args.num_ped) * math.pi / 3
     for i in range(1000):
         prev_obs = obs
         new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)

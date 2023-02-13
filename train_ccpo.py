@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
         
         for i in range(args.rollout_length):
-            prev_obs = make_observation(raw_obs[0], args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
+            prev_obs = obs
             new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
 
             with torch.no_grad():

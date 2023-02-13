@@ -88,6 +88,8 @@ if __name__ == '__main__':
         
         # update policy 
         pg_losses, clip_fraction,  i_value_loss, n_value_loss, g_value_loss = agent.update_policy()
+        
+        lcf_loss = agent.update_lcf()
         lcf_mean = agent.LCF_dist.mean.item()
         
         # reset buffer 
