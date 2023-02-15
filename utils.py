@@ -14,6 +14,7 @@ blue_color = (0.0,0.0,1.0)
 white_color = (1.0,1.0,1.0)
 black_color = (0.0,0.0,0.0)
 
+
 def dist_to_reward(distance, prev_distance, max_distance, neighbor_distance, sparse=False):
     if sparse:
         reward = -0.01
@@ -45,7 +46,6 @@ def make_observation(raw_obs, l, w, num_ped, obs_dim, index_offset, neighbor_dis
     dmean = np.array([0,0,180,0,0,0,0] + [0,180,0] * 12, dtype=np.float32)
     normalize_factor = np.array([l//2, w//2, 180, l//2, w//2, 5, 1] + [1,180,5] * 12, dtype=np.float32)
     obs = (obs-dmean) / normalize_factor
-    
     obs[:,6] = obs[:,6] > 0
     
     return obs
@@ -152,7 +152,7 @@ def obs_to_global_reward(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_di
     reward = np.zeros(num_ped)
     collision = np.zeros(num_ped)
     max_distance = math.sqrt(l**2 + w**2)
-    
+    moving_distance = np.zeros(num_ped)
     for i in range(num_ped):
         
         x_0 = prev_obs[i][0] * (l//2)
@@ -166,16 +166,20 @@ def obs_to_global_reward(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_di
         goal_z = obs[i][4] * (w//2)
         
         prev_distance = math.sqrt((goal_x - x_0)**2 + (goal_z - z_0) ** 2) 
-        distance_to_goal = math.sqrt((goal_x - x)**2 + (goal_z - z) ** 2)        
+        distance_to_goal = math.sqrt((goal_x - x)**2 + (goal_z - z) ** 2)     
+        moving_distance[i] = math.sqrt((x - x_0)**2 + (z - z_0) ** 2) 
         
         reward[i] = dist_to_reward(distance_to_goal, prev_distance, max_distance, neighbor_distance)
+        if reward[i] == 2.0:
+            moving_distance[i] = 0
+            
         collision[i] = coll
         
     
     g_reward = reward.sum() / num_ped
     g_coll = collision.sum() / num_ped
     
-    return g_reward, g_coll
+    return g_reward, g_coll, moving_distance
 
 def obs_to_reward_coll_smoothed(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_distance, sparse):
     reward = np.zeros(num_ped)
@@ -270,4 +274,16 @@ def check_success_rate(obs, l, w):
     distance_to_goal = np.sqrt((x-goal_x)**2 + (z-goal_z)**2)
     success = distance_to_goal < 0.5
 
-    return np.mean(success)
+    return np.mean(success), success
+
+def shortest_distance(obs, l, w, num_ped):
+    l2_distance = np.zeros(num_ped)
+    
+    x = obs[:,0] * (l//2)
+    z = obs[:,1] * (w//2)
+    
+    goal_x = obs[:,3] * (l//2)
+    goal_z = obs[:,4] * (w//2)
+
+    l2_distance = np.sqrt((x - goal_x)**2 + (z - goal_z) ** 2) 
+    return l2_distance

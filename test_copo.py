@@ -9,7 +9,7 @@ from arguments import parser
 
 from mlagents_envs.environment import UnityEnvironment as UE
 from gym_unity.envs import UnityToGymWrapper
-from agents.ccpo import CCPO
+from agents.copo import COPO
 
 import time
 from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
@@ -17,7 +17,7 @@ import os
 
 from utils import obs_to_global_reward, make_observation, check_success_rate, state_engineering, shortest_distance, make_env
 
-def evaluation(args, agent, env, lcf):
+def evaluation(args, agent, env):
     total_return = np.zeros(5)
     total_coll = np.zeros(5)
     total_success_rate =  np.zeros(5)
@@ -33,7 +33,7 @@ def evaluation(args, agent, env, lcf):
         for i in range(1000):
             prev_obs = obs
             new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
-            action, __, __, __, __ = agent.act(torch.from_numpy(new_prev_obs), lcf)
+            action, __, __, __, __ = agent.act(torch.from_numpy(new_prev_obs))
             raw_obs, __, __, __ = env.step(action.reshape(-1))
             
             obs = make_observation(raw_obs[0],args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
@@ -52,52 +52,36 @@ def evaluation(args, agent, env, lcf):
     return np.mean(total_return), np.mean(total_coll), np.mean(total_success_rate), np.mean(total_path_efficiency)
 
 if __name__ == '__main__':
-    
     np.random.seed(0)
     torch.manual_seed(0) 
-    
     # get and save args
-    args = parser.parse_args()
+    args = parser.parse_args()\
     
     if args.env_name == "dense":
         args.num_ped = 200
 
-    agent = CCPO(args)
+    agent = COPO(args)
 
 
     env = make_env(args, "eval_" + args.env_name, 0, args.worker)
-
+    
     # load trained agent
     seed_list = [3, 34, 89, 233, 315, 987, 1597]
     score, collision, success_rate, path_efficiency = np.zeros(7), np.zeros(7), np.zeros(7), np.zeros(7)
     
-    lcf_list=[]
-    for i in range(6):
-        lcf_list.append(np.random.uniform(-math.pi / 2, - math.pi / 3, args.num_ped) + i * math.pi / 6)
-    lcf_list.append(np.random.uniform(0, math.pi / 2, args.num_ped))
-    lcf_list.append(np.random.uniform(0, math.pi / 3, args.num_ped))
-    lcf_list.append(np.ones(args.num_ped) * math.pi / 6)
-    lcf_list.append(np.ones(args.num_ped) * math.pi / 4)
-    lcf_list.append(np.ones(args.num_ped) * math.pi / 3)
-    lcf_name = ["-90 ~ -60", "-60 ~ -30", "-30 ~ 0", "0 ~ 30", "30 ~ 60", "60 ~ 90", "0 ~ 90", "0 ~ 60", "30", "45", "60"]
+    for i in range(len(seed_list)):
+        print("seed:", seed_list[i])
+        agent.load_ckpt(args.model_path + args.env_name + "/" + args.name +"_seed_"+ str(seed_list[i]) + "/model_best.pt")
+        agent.eval_mode()
+        
+        score[i], collision[i], success_rate[i], path_efficiency[i] = evaluation(args, agent, env)
     
-    # for idx in range(len(lcf_list)):
-    for idx in [3,4,8,9,10,11]:
-        for i in range(len(seed_list)):
-            print("seed:", seed_list[i])
-            
-            agent.load_ckpt(args.model_path + args.env_name + "/" + args.name +"_seed_"+ str(seed_list[i]) + "/model_best.pt")
-            agent.eval_mode()
-            
-            score[i], collision[i], success_rate[i], path_efficiency[i] = evaluation(args, agent, env, lcf_list[idx])
-
-        print('-' * 20)
-        print(args.env_name + "_" + args.algo + '_result')
-        print("lcf:", lcf_name[idx])
-        print("score:", np.mean(score))
-        print("collision:", np.mean(collision))
-        print("success_rate:", np.mean(success_rate))
-        print("path_efficiency:", np.mean(path_efficiency))
-        print('-' * 20)
     env.close()
 
+    print('-' * 20)
+    print(args.env_name + "_" + args.algo + '_result')
+    print("score:", np.mean(score))
+    print("collision:", np.mean(collision))
+    print("success_rate:", np.mean(success_rate))
+    print("path_efficiency:", np.mean(path_efficiency))
+    print('-' * 20)

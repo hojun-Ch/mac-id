@@ -269,7 +269,7 @@ parser.add_argument(
 parser.add_argument(
     '--eval_frequency',
     type=int,
-    default=10,
+    default=50,
     help='evaluation frequency'
 )
 

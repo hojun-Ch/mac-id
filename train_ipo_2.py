@@ -14,7 +14,7 @@ import os
 from arguments import parser
 from agents.ipo import IPO
 from eval_ipo_2 import evaluation
-from utils import state_engineering, obs_to_reward, obs_to_reward_coll_smoothed, obs_to_single_reward, make_observation, make_env, check_success_rate
+from utils import state_engineering, obs_to_reward, obs_to_reward_coll_smoothed, obs_to_single_reward, make_observation, make_env, check_success_rate, shortest_distance
 
 import wandb
 
@@ -30,14 +30,18 @@ if __name__ == '__main__':
     wandb.config.update(args)
     
     # make model directory
-    if not os.path.isdir(args.model_path + args.name):
-        os.mkdir(args.model_path + args.name)
+    if not os.path.isdir(args.model_path + args.env_name + "/" + args.name):
+        os.mkdir(args.model_path + args.env_name + "/" + args.name)
+    
+    # change args.num_ped if env is "dense"
+    if args.env_name == "dense":
+        args.num_ped = 200
         
     agent = IPO(args)
  
     # make train env
-    env = make_env(args, "train_" + args.env_name, args.seed, 0)
-    eval_env = make_env(args, "eval_" + args.env_name, 12345, 1)
+    env = make_env(args, "train_" + args.env_name, args.seed, args.worker)
+    eval_env = make_env(args, "eval_" + args.env_name, 12345, args.worker + 1)
     
     print("total episode:", args.max_step // args.rollout_length)
     
@@ -49,7 +53,6 @@ if __name__ == '__main__':
         
         raw_obs = env.reset()
         obs = make_observation(raw_obs[0], args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
-        
         
         print("episode num: ", j)
         print("collecting rollout.....")
@@ -64,11 +67,8 @@ if __name__ == '__main__':
             raw_obs, __, __, __ = env.step(action.reshape(-1))
 
             obs = make_observation(raw_obs[0], args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
-            
-            if args.smooth_cost:
-                reward, n_reward, g_reward, global_reward_wo_coll, global_coll = obs_to_reward_coll_smoothed(obs, prev_obs, args.map_length, args.map_width, args.num_ped, args.coll_penalty, args.neighbor_distance, args.sparse_reward)
-            else:
-                reward, g_reward, global_reward_wo_coll, global_coll = obs_to_single_reward(obs, prev_obs, args.map_length, args.map_width, args.num_ped, args.coll_penalty, args.neighbor_distance, args.sparse_reward)
+
+            reward, g_reward, global_reward_wo_coll, global_coll = obs_to_single_reward(obs, prev_obs, args.map_length, args.map_width, args.num_ped, args.coll_penalty, args.neighbor_distance, args.sparse_reward)
 
             train_global_return += global_reward_wo_coll
             train_collision +=  global_coll
@@ -106,24 +106,25 @@ if __name__ == '__main__':
             
             agent.eval_mode()
             
-            eval_return, eval_coll, eval_sr = evaluation(args, agent, eval_env)
+            eval_return, eval_coll, eval_sr, eval_efficiency = evaluation(args, agent, eval_env)
 
             
             
             if eval_return > best_return:
                 best_return = eval_return
-                agent.save_model(args.model_path + args.name + "/model_best.pt")
+                agent.save_model(args.model_path + args.env_name + "/" + args.name + "/model_best.pt")
             
             wandb.log({
                 'eval_returns': eval_return,
                 'eval_collisions': eval_coll,
-                "eval_success_rate": eval_sr
+                "eval_success_rate": eval_sr,
+                "eval_path_efficiency":eval_efficiency
             }, step=j)
         
         # logging
         
         if j % args.archive_frequency == 0:
-            agent.save_model(args.model_path + args.name + "/model_%05d.pt"%j)
+            agent.save_model(args.model_path + args.env_name + "/" + args.name + "/model_%05d.pt"%j)
         
         # for i in range(len(pg_losses)):
         #     wandb.log({
