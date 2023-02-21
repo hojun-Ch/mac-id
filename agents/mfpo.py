@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.distributions import Normal
-from models.model import Encoder, PolicyNetwork, ValueNetwork, lcfNetwork
+from models.model import Encoder, PolicyNetwork, ValueNetwork_mf, lcfNetwork
 from buffers.buffers import MeanFieldRolloutBuffer
 
 
@@ -45,7 +45,7 @@ class MFPO():
         
         # networks
         self.policy_network = PolicyNetwork(args)
-        self.i_value_network = ValueNetwork(args)
+        self.i_value_network = ValueNetwork_mf(args)
 
         self.device = torch.device(args.device)
         self.policy_network.to(self.device)
@@ -62,7 +62,7 @@ class MFPO():
 
         obs = obs.to(self.device)
             
-        i_value = self.i_value_network(nearby_obs)
+        i_value = self.i_value_network(obs, nearby_obs)
 
         
         log_prob, entropy = self.policy_network.evaluate_action(obs, actions)
@@ -82,20 +82,22 @@ class MFPO():
         """
         with torch.no_grad():
             obs = obs.to(self.device)
+            nearby_obs = nearby_obs.to(self.device)
             
             action, log_prob = self.policy_network(obs)
             
-            value = self.i_value_network(nearby_obs)
+            value = self.i_value_network(obs, nearby_obs)
         
         return action.clone().cpu().numpy(), log_prob, value
     
-    def get_values(self, nearby_obs):
+    def get_values(self, obs, nearby_obs):
         """
         """
         with torch.no_grad():
+            obs = obs.to(self.device)
             nearby_obs = nearby_obs.to(self.device)
                         
-            value = self.i_value_network(nearby_obs)
+            value = self.i_value_network(obs, nearby_obs)
         
         return value
 

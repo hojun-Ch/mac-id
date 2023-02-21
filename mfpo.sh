@@ -1,4 +1,4 @@
 for seed in 3 34 89 233 315 987 1597; do
     # python train_ipo.py --smooth_cost=True --seed=$seed --name=ipo_01_smooth_seed_$seed
-    python train_ccpo_2.py --seed=$seed --name=ccpo_new_seed_$seed --conditioned_value=True --env_name=easy
+    python train_mfpo.py --seed=$seed --name=mfpo_new_seed_$seed --env_name=easy --worker=2
 done

@@ -22,6 +22,7 @@ def evaluation(args, agent, env, lcf):
     total_coll = np.zeros(5)
     total_success_rate =  np.zeros(5)
     total_path_efficiency = np.zeros(5)
+    total_success_rate_wocoll =  np.zeros(5)
     for seed in range(5):
         raw_obs = env.reset()
         obs = make_observation(raw_obs[0],args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
@@ -29,7 +30,7 @@ def evaluation(args, agent, env, lcf):
         total_distance = np.zeros(args.num_ped)
         episode_return = 0
         episode_coll = 0
-        
+        check_collision = np.zeros(args.num_ped)
         for i in range(1000):
             prev_obs = obs
             new_prev_obs = state_engineering(prev_obs, args.map_length, args.map_width, args.num_ped, args.obs_dim)
@@ -37,19 +38,23 @@ def evaluation(args, agent, env, lcf):
             raw_obs, __, __, __ = env.step(action.reshape(-1))
             
             obs = make_observation(raw_obs[0],args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
-            g_reward, g_coll, move = obs_to_global_reward(obs, prev_obs, args.map_length, args.map_width, 51, args.coll_penalty, args.neighbor_distance)
+            g_reward, g_coll, collision, move = obs_to_global_reward(obs, prev_obs, args.map_length, args.map_width, args.num_ped, args.coll_penalty, args.neighbor_distance)
             total_distance += move
             episode_return += g_reward
             episode_coll += g_coll
+            check_collision += collision
         success_rate, success = check_success_rate(obs, args.map_length, args.map_width)
+        success[check_collision > 0] = 0
+        success_rate_wocoll = np.mean(success)
         path_efficiency = np.mean(l2_distance[success] / total_distance[success])
         
         total_return[seed] = episode_return
         total_coll[seed] = episode_coll
         total_success_rate[seed] = success_rate
+        total_success_rate_wocoll[seed] = success_rate_wocoll
         total_path_efficiency[seed] = path_efficiency
         
-    return np.mean(total_return), np.mean(total_coll), np.mean(total_success_rate), np.mean(total_path_efficiency)
+    return np.mean(total_return), np.mean(total_coll), np.mean(total_success_rate), np.mean(total_success_rate_wocoll), np.mean(total_path_efficiency)
 
 if __name__ == '__main__':
     
@@ -59,9 +64,13 @@ if __name__ == '__main__':
     # get and save args
     args = parser.parse_args()
     
-    if args.env_name == "dense":
+    if args.env_name == "dense" or args.env_name == "easydense" or args.env_name == "sparsedense":
         args.num_ped = 200
-
+    if args.env_name == "100dense" or args.env_name == "100easydense":
+        args.num_ped = 100
+    if args.env_name == "sparse":
+        args.num_ped = 25
+        
     agent = CCPO(args)
 
 
@@ -69,7 +78,7 @@ if __name__ == '__main__':
 
     # load trained agent
     seed_list = [3, 34, 89, 233, 315, 987, 1597]
-    score, collision, success_rate, path_efficiency = np.zeros(7), np.zeros(7), np.zeros(7), np.zeros(7)
+    score, collision, success_rate, success_rate_wocoll, path_efficiency = np.zeros(7), np.zeros(7), np.zeros(7), np.zeros(7), np.zeros(7)
     
     lcf_list=[]
     for i in range(6):
@@ -81,22 +90,23 @@ if __name__ == '__main__':
     lcf_list.append(np.ones(args.num_ped) * math.pi / 3)
     lcf_name = ["-90 ~ -60", "-60 ~ -30", "-30 ~ 0", "0 ~ 30", "30 ~ 60", "60 ~ 90", "0 ~ 90", "0 ~ 60", "30", "45", "60"]
     
-    # for idx in range(len(lcf_list)):
-    for idx in [3,4,8,9,10,11]:
+    for idx in range(len(lcf_list)):
+    # for idx in [4,9,10]:
         for i in range(len(seed_list)):
             print("seed:", seed_list[i])
             
-            agent.load_ckpt(args.model_path + args.env_name + "/" + args.name +"_seed_"+ str(seed_list[i]) + "/model_best.pt")
+            agent.load_ckpt(args.model_path + "easy/" + args.name +"_seed_"+ str(seed_list[i]) + "/model_best.pt")
             agent.eval_mode()
             
-            score[i], collision[i], success_rate[i], path_efficiency[i] = evaluation(args, agent, env, lcf_list[idx])
+            score[i], collision[i], success_rate[i], success_rate_wocoll[i],path_efficiency[i] = evaluation(args, agent, env, lcf_list[idx])
 
         print('-' * 20)
         print(args.env_name + "_" + args.algo + '_result')
         print("lcf:", lcf_name[idx])
-        print("score:", np.mean(score))
+        print("score:", np.mean(score) / 20)
         print("collision:", np.mean(collision))
         print("success_rate:", np.mean(success_rate))
+        print("success_rate w/o collision:", np.mean(success_rate_wocoll))
         print("path_efficiency:", np.mean(path_efficiency))
         print('-' * 20)
     env.close()

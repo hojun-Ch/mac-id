@@ -49,6 +49,28 @@ def make_observation(raw_obs, l, w, num_ped, obs_dim, index_offset, neighbor_dis
     obs[:,6] = obs[:,6] > 0
     
     return obs
+
+def make_observation_mf(raw_obs, l, w, num_ped, obs_dim, index_offset, neighbor_distance):
+    neighbor_obs = np.zeros((num_ped, 43))
+    obs = np.array(raw_obs[index_offset:], dtype = np.float32)
+    obs = obs.reshape((num_ped, 43))
+    dmean = np.array([0,0,180,0,0,0,0] + [0,180,0] * 12, dtype=np.float32)
+    normalize_factor = np.array([l//2, w//2, 180, l//2, w//2, 5, 1] + [1,180,5] * 12, dtype=np.float32)
+    obs = (obs-dmean) / normalize_factor
+    obs[:,6] = obs[:,6] > 0
+    
+    location = obs[:,:2] * np.array([l//2, w//2])
+    
+    for i in range(num_ped):
+        location_difference = location - location[i]
+        distance = np.sum(location_difference ** 2, axis=1)
+        neighbor_index = distance < (neighbor_distance ** 2)
+        neighbor_obs[i] = np.mean(obs[neighbor_index], axis=0)
+        
+        
+    
+    return obs, neighbor_obs
+
 def state_engineering(obs, l, w, num_ped, obs_dim):
     # distance
     new_obs = np.zeros((num_ped, obs_dim), dtype=np.float32)
@@ -57,12 +79,33 @@ def state_engineering(obs, l, w, num_ped, obs_dim):
     # heading
     goal_direction = (np.arctan2(obs[:,0] - obs[:,3], obs[:,1] - obs[:,4]))
     goal_direction[goal_direction < 0] += math.pi * 2
-    goal_heading = goal_direction - obs[:,2] * math.pi / 180
-    goal_heading[goal_heading < 0] += math.pi * 2
+    
+    # goal_heading = goal_direction - obs[:,2] * math.pi / 180
+    # goal_heading[goal_heading < 0] += math.pi * 2
+    
+    goal_heading = goal_direction - obs[:,2] * math.pi
+    
     new_obs[:,1] = goal_heading / (2 * math.pi)
     
     new_obs[:,2:] = obs[:,7:]
     return new_obs
+
+def state_engineering_ppo(obs, l, w, num_ped, obs_dim):
+    # distance
+    new_obs = np.zeros((num_ped, obs_dim), dtype=np.float32)
+    new_obs[:,0] = np.sqrt((obs[:,0] - obs[:,3])**2 + (obs[:,1] - obs[:,4])**2)
+    
+    # heading
+    goal_direction = (np.arctan2(obs[:,3] - obs[:,0], obs[:,4] - obs[:,1]))
+    goal_direction[goal_direction < 0] += math.pi * 2
+    goal_heading = goal_direction - obs[:,2] * math.pi
+    # goal_heading[goal_heading < 0] += math.pi * 2
+    new_obs[:,1] = goal_heading
+    # new_obs = obs[:,:5]
+    
+    new_obs[:,2:] = obs[:,7:]
+    return new_obs
+
 def obs_to_reward(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_distance, sparse):
     reward = np.zeros(num_ped)
     g_reward = np.ones(num_ped)
@@ -128,8 +171,8 @@ def obs_to_single_reward(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_di
         
         x = obs[i][0] * (l//2)
         z = obs[i][1] * (w//2)
-        coll = obs[i][6]
 
+        coll = obs[i][6]
         goal_x = obs[i][3] * (l//2)
         goal_z = obs[i][4] * (w//2)
         
@@ -179,7 +222,7 @@ def obs_to_global_reward(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_di
     g_reward = reward.sum() / num_ped
     g_coll = collision.sum() / num_ped
     
-    return g_reward, g_coll, moving_distance
+    return g_reward, g_coll, collision, moving_distance
 
 def obs_to_reward_coll_smoothed(obs, prev_obs, l, w, num_ped, coll_penalty, neighbor_distance, sparse):
     reward = np.zeros(num_ped)

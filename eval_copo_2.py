@@ -36,7 +36,7 @@ def evaluation(args, agent, env):
             raw_obs, __, __, __ = env.step(action.reshape(-1))
             
             obs = make_observation(raw_obs[0],args.map_length, args.map_width, args.num_ped, args.obs_dim, args.dummy_index, args.neighbor_distance)
-            g_reward, g_coll, move = obs_to_global_reward(obs, prev_obs, args.map_length, args.map_width, args.num_ped, args.coll_penalty, args.neighbor_distance)
+            g_reward, g_coll, __, move = obs_to_global_reward(obs, prev_obs, args.map_length, args.map_width, args.num_ped, args.coll_penalty, args.neighbor_distance)
             total_distance += move
             episode_return += g_reward
             episode_coll += g_coll

@@ -553,7 +553,7 @@ class MeanFieldRolloutBuffer(BaseBuffer):
         if self.pos == self.buffer_size:
             self.full = True
 
-    def get(self, batch_size: Optional[int] = None) -> Generator[RolloutBufferSamples, None, None]:
+    def get(self, batch_size: Optional[int] = None) -> Generator[MeanFieldRolloutBufferSamples, None, None]:
         assert self.full, ""
         indices = np.random.permutation(self.buffer_size * self.n_envs)
         # Prepare the data
@@ -589,7 +589,7 @@ class MeanFieldRolloutBuffer(BaseBuffer):
             yield self._get_samples(indices[start_idx : start_idx + batch_size])
             start_idx += batch_size
 
-    def _get_samples(self, batch_inds: np.ndarray) -> RolloutBufferSamples:
+    def _get_samples(self, batch_inds: np.ndarray) -> MeanFieldRolloutBufferSamples:
         data = (
             self.observations[batch_inds],
             self.nearby_observations[batch_inds],
@@ -606,4 +606,4 @@ class MeanFieldRolloutBuffer(BaseBuffer):
             self.g_returns[batch_inds].flatten(),
             self.lcf[batch_inds].flatten()
         )
-        return RolloutBufferSamples(*tuple(map(self.to_torch, data)))
+        return MeanFieldRolloutBufferSamples(*tuple(map(self.to_torch, data)))

@@ -204,6 +204,29 @@ class ValueNetwork(nn.Module):
         value = self.layer(obs)
         
         return value
+    
+class ValueNetwork_mf(nn.Module):
+    
+    def __init__(self, args):
+        super().__init__()
+        num_hidden = args.policy_num_hidden
+        obs_dimension = args.obs_dim
+        
+        self.layer = nn.Sequential(
+            nn.Linear(obs_dimension * 2, num_hidden),
+            nn.ReLU(),
+            nn.Linear(num_hidden, num_hidden),
+            nn.ReLU(),
+            nn.Linear(num_hidden, num_hidden),
+            nn.ReLU(),
+            nn.Linear(num_hidden, 1)
+        )
+        
+    def forward(self, obs, nearby_obs):
+
+        value = self.layer(torch.cat((obs, nearby_obs), dim=1))
+        
+        return value
 
 class ValueNetwork_cond(nn.Module):
     
